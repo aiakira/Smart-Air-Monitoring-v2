@@ -21,7 +21,7 @@ const pool = new Pool({
 });
 
 // Handle pool errors
-pool.on('error', (err) => {
+pool.on('error', (err: Error) => {
   console.error('[neon] Unexpected pool error:', err);
 });
 
@@ -36,7 +36,7 @@ export async function query(text: string, params?: any[]) {
   try {
     const result = await client.query(text, params);
     return { rows: result.rows };
-  } catch (err) {
+  } catch (err: unknown) {
     console.error('[neon] Query error:', err);
     throw err;
   } finally {
@@ -62,7 +62,7 @@ export async function transaction(queries: Array<{ text: string; params?: any[] 
     
     await client.query('COMMIT');
     return results;
-  } catch (err) {
+  } catch (err: unknown) {
     await client.query('ROLLBACK');
     console.error('[neon] Transaction error:', err);
     throw err;
