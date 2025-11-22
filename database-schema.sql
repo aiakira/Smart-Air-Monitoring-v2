@@ -27,24 +27,9 @@ CREATE TABLE IF NOT EXISTS settings (
 -- Index untuk mempercepat query pengaturan terbaru
 CREATE INDEX IF NOT EXISTS idx_settings_updated_at ON settings(updated_at DESC);
 
--- Tabel untuk menyimpan status fan (exhaust fan)
-CREATE TABLE IF NOT EXISTS fan_state (
-  id SERIAL PRIMARY KEY,
-  desired BOOLEAN NOT NULL,              -- Status fan yang diinginkan (on/off)
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Index untuk mempercepat query status fan terbaru
-CREATE INDEX IF NOT EXISTS idx_fan_state_updated_at ON fan_state(updated_at DESC);
-
 -- Insert data default untuk settings
 INSERT INTO settings (co2_threshold, co_threshold, dust_threshold, auto_mode, notifications_enabled)
 VALUES (1000, 5, 100, true, true)
-ON CONFLICT DO NOTHING;
-
--- Insert data default untuk fan_state
-INSERT INTO fan_state (desired)
-VALUES (false)
 ON CONFLICT DO NOTHING;
 
 -- Insert beberapa data sample untuk sensor_readings (opsional)
@@ -60,4 +45,3 @@ INSERT INTO sensor_readings (co2, co, dust, ts) VALUES
 -- Query untuk melihat data
 -- SELECT * FROM sensor_readings ORDER BY ts DESC LIMIT 10;
 -- SELECT * FROM settings ORDER BY updated_at DESC LIMIT 1;
--- SELECT * FROM fan_state ORDER BY updated_at DESC LIMIT 1;
