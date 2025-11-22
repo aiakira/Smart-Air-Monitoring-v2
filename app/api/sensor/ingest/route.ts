@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import client, { ensureConnected } from '../../../../lib/neon'
+import db from '../../../../lib/neon'
 
 const API_KEY = process.env.SENSOR_API_KEY || ''
 
@@ -24,8 +24,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'DATABASE_URL not set' }, { status: 500 })
     }
 
-    await ensureConnected()
-    await client!.query('INSERT INTO sensor_readings (ts, co2, co, dust) VALUES ($1, $2, $3, $4)', [ts, co2, co, dust])
+    await db.query('INSERT INTO sensor_readings (ts, co2, co, dust) VALUES ($1, $2, $3, $4)', [ts, co2, co, dust])
     return NextResponse.json({ ok: true })
   } catch (err: any) {
     return NextResponse.json({ error: String(err?.message ?? err) }, { status: 500 })

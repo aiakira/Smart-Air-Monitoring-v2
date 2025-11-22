@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server'
-import client, { ensureConnected } from '../../../lib/neon'
+import db from '../../../lib/neon'
 
 const API_KEY = process.env.SENSOR_API_KEY || ''
 
 export async function GET() {
   if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'DATABASE_URL not set' }, { status: 500 })
   try {
-    await ensureConnected()
-    const res = await client!.query('SELECT * FROM settings ORDER BY updated_at DESC LIMIT 1')
+    const res = await db.query('SELECT * FROM settings ORDER BY updated_at DESC LIMIT 1')
     const row = res.rows[0] ?? null
     if (!row) {
       // return defaults if none stored
@@ -35,8 +34,7 @@ export async function POST(req: Request) {
 
     if (!process.env.DATABASE_URL) return NextResponse.json({ error: 'DATABASE_URL not set' }, { status: 500 })
 
-    await ensureConnected()
-    await client!.query(
+    await db.query(
       `INSERT INTO settings (mode, threshold_co2_good, threshold_co2_poor, threshold_co_double, threshold_co_poor, threshold_dust_moderate, threshold_dust_poor) VALUES ($1,$2,$3,$4,$5,$6,$7)`,
       [mode, threshold_co2_good, threshold_co2_poor, threshold_co_double, threshold_co_poor, threshold_dust_moderate, threshold_dust_poor]
     )

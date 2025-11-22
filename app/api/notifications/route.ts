@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import client, { ensureConnected } from '../../../lib/neon'
+import db from '../../../lib/neon'
 
 function generateNotificationsFromSensor(sensor: any, settings: any) {
   const notifications: any[] = []
@@ -43,11 +43,10 @@ export async function GET() {
   }
 
   try {
-    await ensureConnected()
-    const res = await client!.query('SELECT co2, co, dust, ts FROM sensor_readings ORDER BY ts DESC LIMIT 1')
+    const res = await db.query('SELECT co2, co, dust, ts FROM sensor_readings ORDER BY ts DESC LIMIT 1')
     const sensor = res.rows[0] ?? null
     // read settings so thresholds and mode are respected
-    const settingsRes = await client!.query('SELECT * FROM settings ORDER BY updated_at DESC LIMIT 1')
+    const settingsRes = await db.query('SELECT * FROM settings ORDER BY updated_at DESC LIMIT 1')
     const settings = settingsRes.rows[0] ?? null
     const notifications = generateNotificationsFromSensor(sensor, settings)
 
@@ -61,28 +60,28 @@ export async function GET() {
       let lastState: any = null
 
       try {
-        const stateRes = await client!.query('SELECT desired, updated_at FROM fan_state ORDER BY updated_at DESC LIMIT 1')
+        const stateRes = await db.query('SELECT desired, updated_at FROM fan_state ORDER BY updated_at DESC LIMIT 1')
         lastState = stateRes.rows[0] ?? null
 
         const nowTs = Date.now()
 
         if (!lastState) {
           // no previous state, persist current desiredFan
-          await client!.query('INSERT INTO fan_state (desired) VALUES ($1)', [desiredFan])
+          await db.query('INSERT INTO fan_state (desired) VALUES ($1)', [desiredFan])
           persisted = true
         } else if (Boolean(lastState.desired) === Boolean(desiredFan)) {
           // same as last desired state -> nothing to do
           persisted = false
         } else if (desiredFan === true) {
           // switching ON -> do it immediately
-          await client!.query('INSERT INTO fan_state (desired) VALUES ($1)', [true])
+          await db.query('INSERT INTO fan_state (desired) VALUES ($1)', [true])
           persisted = true
         } else {
           // switching OFF -> apply hysteresis (require last change older than threshold)
           const lastChanged = new Date(lastState.updated_at).getTime()
           const ageSec = (nowTs - lastChanged) / 1000
           if (ageSec >= HYSTERESIS_SECONDS) {
-            await client!.query('INSERT INTO fan_state (desired) VALUES ($1)', [false])
+            await db.query('INSERT INTO fan_state (desired) VALUES ($1)', [false])
             persisted = true
           } else {
             // do not persist OFF yet

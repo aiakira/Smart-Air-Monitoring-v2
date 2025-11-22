@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import client, { ensureConnected } from '../../../../lib/neon'
+import db from '../../../../lib/neon'
 
 export async function GET(req: Request) {
   if (!process.env.DATABASE_URL) {
@@ -9,11 +9,10 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url)
     const limit = Number(url.searchParams.get('limit') ?? '24')
-    await ensureConnected()
-    const res = await client!.query('SELECT co2, co, dust, ts FROM sensor_readings ORDER BY ts DESC LIMIT $1', [limit])
+    const res = await db.query('SELECT co2, co, dust, ts FROM sensor_readings ORDER BY ts DESC LIMIT $1', [limit])
     
     // Ensure numeric values and return in ascending time order
-    const rows = res.rows.map(row => ({
+    const rows = res.rows.map((row: any) => ({
       ...row,
       co2: Number(row.co2) || 0,
       co: Number(row.co) || 0,

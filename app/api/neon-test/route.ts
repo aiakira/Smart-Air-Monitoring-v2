@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import client, { ensureConnected } from '../../../lib/neon';
+import db from '../../../lib/neon';
 
 export async function GET() {
   if (!process.env.DATABASE_URL) {
@@ -7,11 +7,8 @@ export async function GET() {
   }
 
   try {
-    // ensure client connected (noop if already connected)
-    await ensureConnected();
-
     // simple test query
-    const res = await client!.query('SELECT NOW() as now');
+    const res = await db.query('SELECT NOW() as now');
     return NextResponse.json({ now: res.rows[0].now });
   } catch (err: any) {
     return NextResponse.json({ error: String(err?.message ?? err) }, { status: 500 });

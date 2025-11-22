@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import client, { ensureConnected } from '../../../../lib/neon'
+import db from '../../../../lib/neon'
 
 export async function GET() {
   if (!process.env.DATABASE_URL) {
@@ -7,8 +7,7 @@ export async function GET() {
   }
 
   try {
-    await ensureConnected()
-    const res = await client!.query('SELECT co2, co, dust, ts FROM sensor_readings ORDER BY ts DESC LIMIT 1')
+    const res = await db.query('SELECT co2, co, dust, ts FROM sensor_readings ORDER BY ts DESC LIMIT 1')
     const row = res.rows[0] ?? null
     
     // Ensure numeric values are properly converted
