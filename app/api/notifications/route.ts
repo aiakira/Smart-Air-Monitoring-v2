@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server'
 import db from '../../../lib/neon'
 
-function generateNotificationsFromSensor(sensor: any, settings: any) {
+function generateNotificationsFromSensor(sensor: any) {
   const notifications: any[] = []
   if (!sensor) return notifications
   const now = new Date(sensor.ts || Date.now())
   const timeString = now.toLocaleTimeString('id-ID')
 
-  const co2Poor = Number(settings?.threshold_co2_poor ?? 1000)
-  const co2Moderate = Number(settings?.threshold_co2_good ?? 700)
-  const coPoor = Number(settings?.threshold_co_poor ?? 5)
-  const coModerate = Number(settings?.threshold_co_double ?? 2)
-  const dustPoor = Number(settings?.threshold_dust_poor ?? 100)
-  const dustModerate = Number(settings?.threshold_dust_moderate ?? 75)
+  // Default thresholds
+  const co2Poor = 1000
+  const co2Moderate = 700
+  const coPoor = 5
+  const coModerate = 2
+  const dustPoor = 100
+  const dustModerate = 75
 
   if (sensor.co2 > co2Poor) {
     notifications.push({ type: 'warning', time: timeString, message: `CO₂ TINGGI (${Math.round(sensor.co2)} ppm)`, action: 'Perlu ventilasi segera' })
@@ -45,10 +46,7 @@ export async function GET() {
   try {
     const res = await db.query('SELECT co2, co, dust, ts FROM sensor_readings ORDER BY ts DESC LIMIT 1')
     const sensor = res.rows[0] ?? null
-    // read settings so thresholds and mode are respected
-    const settingsRes = await db.query('SELECT * FROM settings ORDER BY updated_at DESC LIMIT 1')
-    const settings = settingsRes.rows[0] ?? null
-    const notifications = generateNotificationsFromSensor(sensor, settings)
+    const notifications = generateNotificationsFromSensor(sensor)
 
     return NextResponse.json({ data: notifications })
   } catch (err: any) {

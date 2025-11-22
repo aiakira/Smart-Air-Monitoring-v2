@@ -13,25 +13,6 @@ CREATE TABLE IF NOT EXISTS sensor_readings (
 -- Index untuk mempercepat query berdasarkan timestamp
 CREATE INDEX IF NOT EXISTS idx_sensor_readings_ts ON sensor_readings(ts DESC);
 
--- Tabel untuk menyimpan pengaturan aplikasi
-CREATE TABLE IF NOT EXISTS settings (
-  id SERIAL PRIMARY KEY,
-  co2_threshold NUMERIC(10, 2) DEFAULT 1000,  -- Threshold CO2 dalam ppm
-  co_threshold NUMERIC(10, 2) DEFAULT 5,      -- Threshold CO dalam ppm
-  dust_threshold NUMERIC(10, 2) DEFAULT 100,  -- Threshold debu dalam µg/m³
-  auto_mode BOOLEAN DEFAULT true,             -- Mode otomatis fan
-  notifications_enabled BOOLEAN DEFAULT true, -- Notifikasi aktif/tidak
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Index untuk mempercepat query pengaturan terbaru
-CREATE INDEX IF NOT EXISTS idx_settings_updated_at ON settings(updated_at DESC);
-
--- Insert data default untuk settings
-INSERT INTO settings (co2_threshold, co_threshold, dust_threshold, auto_mode, notifications_enabled)
-VALUES (1000, 5, 100, true, true)
-ON CONFLICT DO NOTHING;
-
 -- Insert beberapa data sample untuk sensor_readings (opsional)
 INSERT INTO sensor_readings (co2, co, dust, ts) VALUES
   (412, 1.2, 58, NOW() - INTERVAL '1 hour'),
@@ -44,4 +25,3 @@ INSERT INTO sensor_readings (co2, co, dust, ts) VALUES
 
 -- Query untuk melihat data
 -- SELECT * FROM sensor_readings ORDER BY ts DESC LIMIT 10;
--- SELECT * FROM settings ORDER BY updated_at DESC LIMIT 1;
