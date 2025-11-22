@@ -29,17 +29,54 @@ export default function RiwayatPage() {
   const [data, setData] = useState<any[]>([])
   const [filterStatus, setFilterStatus] = useState<"semua" | "baik" | "sedang" | "buruk">("semua")
   const [sortOrder, setSortOrder] = useState<"terbaru" | "terlama">("terbaru")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [dateFilter, setDateFilter] = useState<"semua" | "hari-ini" | "minggu-ini" | "bulan-ini">("semua")
 
   const filteredData = useMemo(() => {
     let result = data
+
+    // Filter by status
     if (filterStatus !== "semua") {
       result = result.filter((item) => item.status === filterStatus)
     }
+
+    // Filter by date range
+    if (dateFilter !== "semua") {
+      const now = new Date()
+      result = result.filter((item) => {
+        const itemDate = new Date(item.tanggal.split('/').reverse().join('-'))
+        
+        if (dateFilter === "hari-ini") {
+          return itemDate.toDateString() === now.toDateString()
+        } else if (dateFilter === "minggu-ini") {
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          return itemDate >= weekAgo
+        } else if (dateFilter === "bulan-ini") {
+          return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear()
+        }
+        return true
+      })
+    }
+
+    // Filter by search query
+    if (searchQuery) {
+      result = result.filter((item) => 
+        item.tanggal.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.waktu.includes(searchQuery) ||
+        item.co2.toString().includes(searchQuery) ||
+        item.co.toString().includes(searchQuery) ||
+        item.dust.toString().includes(searchQuery) ||
+        item.status.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    // Sort
     if (sortOrder === "terlama") {
       result = [...result].reverse()
     }
+
     return result
-  }, [data, filterStatus, sortOrder])
+  }, [data, filterStatus, sortOrder, searchQuery, dateFilter])
 
   // fetch history from server (Neon)
   useEffect(() => {
@@ -112,13 +149,32 @@ export default function RiwayatPage() {
             </div>
 
             {/* Filters */}
-            <Card className="p-6 shadow-sm">
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" className="flex items-center gap-2 bg-transparent">
-                    <Filter className="h-4 w-4" />
-                    Status:
+            <Card className="p-6 shadow-sm space-y-4">
+              {/* Search Bar */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Cari tanggal, waktu, nilai sensor, atau status..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-border rounded-lg text-sm bg-card text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                {searchQuery && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    Clear
                   </Button>
+                )}
+              </div>
+
+              {/* Filter Buttons */}
+              <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                {/* Status Filter */}
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span className="text-sm font-medium text-muted-foreground">Status:</span>
                   {["semua", "baik", "sedang", "buruk"].map((status) => (
                     <Button
                       key={status}
@@ -126,11 +182,27 @@ export default function RiwayatPage() {
                       size="sm"
                       onClick={() => setFilterStatus(status as any)}
                     >
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                      {status === "semua" ? "Semua" : status === "baik" ? "🟢 Baik" : status === "sedang" ? "🟡 Sedang" : "🔴 Buruk"}
                     </Button>
                   ))}
                 </div>
 
+                {/* Date Filter */}
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span className="text-sm font-medium text-muted-foreground">Periode:</span>
+                  {["semua", "hari-ini", "minggu-ini", "bulan-ini"].map((period) => (
+                    <Button
+                      key={period}
+                      variant={dateFilter === period ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setDateFilter(period as any)}
+                    >
+                      {period === "semua" ? "Semua" : period === "hari-ini" ? "Hari Ini" : period === "minggu-ini" ? "Minggu Ini" : "Bulan Ini"}
+                    </Button>
+                  ))}
+                </div>
+
+                {/* Sort & Export */}
                 <div className="flex gap-2">
                   <select
                     value={sortOrder}
@@ -147,7 +219,7 @@ export default function RiwayatPage() {
                     className="flex items-center gap-2 bg-transparent"
                   >
                     <Download className="h-4 w-4" />
-                    Export CSV
+                    Export
                   </Button>
                 </div>
               </div>
@@ -189,19 +261,28 @@ export default function RiwayatPage() {
               </div>
             </Card>
 
-            {/* Action */}
-            <Card className="p-4 bg-destructive/10 border border-destructive/20">
+            {/* Summary */}
+            <Card className="p-4 bg-muted/50">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-foreground">Total: {filteredData.length} entri data</p>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-destructive hover:bg-destructive/10"
-                  onClick={() => alert("Data akan dihapus (ini demo)")}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Hapus Semua
-                </Button>
+                <div className="flex gap-4 text-sm">
+                  <span className="text-foreground">
+                    Menampilkan <strong>{filteredData.length}</strong> dari <strong>{data.length}</strong> entri
+                  </span>
+                  {(filterStatus !== "semua" || dateFilter !== "semua" || searchQuery) && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setFilterStatus("semua")
+                        setDateFilter("semua")
+                        setSearchQuery("")
+                      }}
+                      className="text-primary hover:text-primary/80"
+                    >
+                      Reset Filter
+                    </Button>
+                  )}
+                </div>
               </div>
             </Card>
           </div>
